@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login/Sign Up - Foodigo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="form-container" id="loginFormContainer">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="hidden" id="loginRole" name="role">
+            <div class="form-group">                                                                    
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+            <div class="toggle-form">
+                <p>Don't have an account? <a href="#" id="showSignup">Sign Up</a></p>
+            </div>
+        </form>
+    </div>
+
+    <div class="form-container" id="signupFormContainer" style="display:none;">
+        <h2>Sign Up</h2>
+        <form id="signupForm">
+            <input type="hidden" id="signupRole" name="role">
+            <div class="form-group">
+                <label for="signupName">Full Name</label>
+                <input type="text" id="signupName" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="signupPassword">Password</label>
+                <input type="password" id="signupPassword" name="password" required>
+            </div>
+            <!-- Add more fields specific to roles if needed later -->
+            <button type="submit">Sign Up</button>
+            <div class="toggle-form">
+                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+            </div>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

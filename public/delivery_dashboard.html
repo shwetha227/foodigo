@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Dashboard - Foodigo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="delivery-dashboard">
+        <h1>Delivery Dashboard</h1>
+        <div id="pending-orders">
+            <!-- Orders will be populated here dynamically -->
+        </div>
+    </div>
+
+    <template id="order-template">
+        <div class="order-card">
+            <h3>Order #<span class="order-id"></span></h3>
+            <div class="order-details">
+                <p><strong>Customer:</strong> <span class="customer-name"></span></p>
+                <p><strong>Address:</strong> <span class="delivery-address"></span></p>
+                <p><strong>Items:</strong></p>
+                <ul class="order-items"></ul>
+                <p><strong>Total:</strong> $<span class="order-total"></span></p>
+            </div>
+            <button class="accept-order-btn" data-order-id="">Accept Order</button>
+        </div>
+    </template>
+
+    <script src="delivery-dashboard.js"></script>
+</body>
+
+</html>

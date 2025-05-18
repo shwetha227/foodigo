@@ -1,0 +1,11 @@
+Place your restaurant images in this folder. Example filenames:
+- oota_bangalore.jpg
+- vidyarthi_bhavan.jpg
+- koshys.jpg
+- sharief_bhai.jpg
+- paakashala.jpg
+- jamavar.jpg
+- feast.jpg
+- grand_mercure_mysore.jpg
+- taj_bangalore.jpg
+- st_marks_hotel.jpg 
