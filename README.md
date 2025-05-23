@@ -1,3 +1,4 @@
+HEAD
 # Foodigo - Online Food Delivery Website
 
 This project is an online food delivery platform built with HTML, CSS, JavaScript for the frontend, and Node.js with Express.js for the backend. MySQL is used as the database.
@@ -83,3 +84,6 @@ This project is an online food delivery platform built with HTML, CSS, JavaScrip
 *   Add input validation and error handling on both frontend and backend.
 *   Enhance security (e.g., password hashing with bcrypt, input sanitization, HTTPS).
 *   Refine UI/UX. 
+# foodigo
+foodigo
+ 6b3d7ef9bfd8d79045f60c3284dbe6f572cb3367
