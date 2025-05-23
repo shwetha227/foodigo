@@ -18,6 +18,12 @@
             <p>Loading restaurants...</p>
         </div>
     </div>
-    <script src="script.js"></script> 
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('userId');
+            console.log('Customer Dashboard loaded. userId from localStorage:', userId);
+        });
+    </script>
 </body>
 </html> 

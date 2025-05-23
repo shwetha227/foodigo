@@ -28,26 +28,60 @@
 
     <div class="form-container" id="signupFormContainer" style="display:none;">
         <h2>Sign Up</h2>
-        <form id="signupForm">
-            <input type="hidden" id="signupRole" name="role">
-            <div class="form-group">
-                <label for="signupName">Full Name</label>
-                <input type="text" id="signupName" name="name" required>
-            </div>
-            <div class="form-group">
-                <label for="signupEmail">Email</label>
-                <input type="email" id="signupEmail" name="email" required>
-            </div>
-            <div class="form-group">
-                <label for="signupPassword">Password</label>
-                <input type="password" id="signupPassword" name="password" required>
-            </div>
-            <!-- Add more fields specific to roles if needed later -->
+        
+        <!-- Customer Signup Form -->
+        <div id="customerSignupForm" class="signup-form">
+            <h2>Sign Up as Customer</h2>
+            <input type="hidden" id="signupRoleCustomer" name="role" value="customer">
+            <input type="text" id="signupNameCustomer" placeholder="Name" required>
+            <input type="email" id="signupEmailCustomer" placeholder="Email" required>
+            <input type="password" id="signupPasswordCustomer" placeholder="Password" required>
+            <!-- Add Address and Phone for Customer -->
+            <input type="text" id="signupAddressCustomer" placeholder="Address" required>
+            <input type="tel" id="signupPhoneCustomer" placeholder="Phone Number" required>
             <button type="submit">Sign Up</button>
-            <div class="toggle-form">
-                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
-            </div>
-        </form>
+        </div>
+
+        <!-- Delivery Partner Signup Form -->
+        <div id="deliveryPartnerSignupForm" class="signup-form">
+            <h2>Sign Up as Delivery Partner</h2>
+            <input type="hidden" id="signupRoleDP" name="role" value="delivery_partner">
+            <input type="text" id="signupNameDP" placeholder="Name" required>
+            <input type="email" id="signupEmailDP" placeholder="Email" required>
+            <input type="password" id="signupPasswordDP" placeholder="Password" required>
+            <input type="tel" id="signupDPPhone" placeholder="Phone Number" required>
+            <input type="text" id="signupVehicleDetails" placeholder="Vehicle Details" required>
+            <select id="signupCurrentStatus" required>
+                <option value="" disabled selected>Select Status</option>
+                <option value="available">Available</option>
+                <option value="unavailable">Unavailable</option>
+            </select>
+            <input type="text" id="signupCurrentLocationLat" placeholder="Current Location Latitude" required>
+            <input type="text" id="signupCurrentLocationLng" placeholder="Current Location Longitude" required>
+            <button type="submit">Sign Up</button>
+        </div>
+
+        <!-- Restaurant Signup Form -->
+        <div id="restaurantSignupForm" class="signup-form" style="display: none;">
+            <h2>Sign Up as Restaurant</h2>
+            <input type="hidden" id="signupRoleRestaurant" name="role" value="restaurant">
+            <input type="text" id="signupNameRestaurant" placeholder="Restaurant Name" required>
+            <input type="email" id="signupEmailRestaurant" placeholder="Email" required>
+            <input type="password" id="signupPasswordRestaurant" placeholder="Password" required>
+            <input type="text" id="signupAddressRestaurant" placeholder="Address" required>
+            <input type="tel" id="signupPhoneRestaurant" placeholder="Phone Number" required>
+            <input type="text" id="signupCuisineTypeRestaurant" placeholder="Cuisine Type">
+            <input type="text" id="signupOperatingHoursRestaurant" placeholder="Operating Hours">
+            <label for="signupIsOpenRestaurant">Open:</label>
+            <input type="checkbox" id="signupIsOpenRestaurant" checked>
+            <input type="text" id="signupBannerImageUrlRestaurant" placeholder="Banner Image URL">
+            <button type="submit">Sign Up</button>
+        </div>
+
+        <div class="toggle-form">
+            <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+        </div>
+        
     </div>
 
     <script src="script.js"></script>

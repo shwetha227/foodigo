@@ -3,7 +3,7 @@ const mysql = require('mysql2');
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'Maansa@256',
+    password: 'shwetha@05',
     database: 'foodigo_db'
 });
 

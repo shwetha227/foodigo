@@ -29,44 +29,99 @@ app.get('/', (req, res) => {
 
 // Signup Endpoint
 app.post('/signup', async (req, res) => {
-    const { role, name, email, password } = req.body;
+    const { role, name, email, password, address, phone_number } = req.body;
+    
+    // Destructure delivery partner specific fields
+    const { phone_number: dp_phone_number, vehicle_details, current_status, current_location_lat, current_location_lng } = req.body;
+
     if (!role || !name || !email || !password) {
-        return res.status(400).json({ message: 'All fields are required.' });
+        return res.status(400).json({ message: 'All required fields (role, name, email, password) are required.' });
     }
+    
+    // Basic validation for role-specific required fields
+    if (role === 'customer' && (!address || !phone_number)) {
+         return res.status(400).json({ message: 'Address and Phone Number are required for customer signup.' });
+    } else if (role === 'delivery_partner' && (!dp_phone_number || !vehicle_details || !current_status)) {
+         return res.status(400).json({ message: 'Phone Number, Vehicle Details, and Current Status are required for delivery partner signup.' });
+    }
+
     try {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
         let table = '';
         let insertFields = '';
         let insertValues = [];
+
         if (role === 'customer') {
             table = 'customers';
-            insertFields = '(name, email, password_hash)';
-            insertValues = [name, email, hashedPassword];
+            insertFields = '(name, email, password_hash, address, phone_number)';
+            insertValues = [name, email, hashedPassword, address, phone_number];
         } else if (role === 'restaurant') {
             table = 'restaurants';
-            insertFields = '(name, email, password_hash, address)';
-            insertValues = [name, email, hashedPassword, '']; // Address can be updated later
+            insertFields = '(name, email, password_hash, address)'; // Assuming address is required for restaurants
+            insertValues = [name, email, hashedPassword, address]; // Get address from req.body
         } else if (role === 'delivery_partner') {
             table = 'delivery_partners';
-            insertFields = '(name, email, password_hash, phone_number)';
-            insertValues = [name, email, hashedPassword, '']; // Phone can be updated later
+            // Include all required and optional fields for delivery partners
+            insertFields = '(name, email, password_hash, phone_number, vehicle_details, current_status, current_location_lat, current_location_lng)';
+            insertValues = [
+                name,
+                email,
+                hashedPassword,
+                dp_phone_number, // Use the delivery partner specific phone number
+                vehicle_details,
+                current_status,
+                current_location_lat || null, // Allow null if not provided
+                current_location_lng || null  // Allow null if not provided
+            ];
         } else {
             return res.status(400).json({ message: 'Invalid role.' });
         }
+
         // Check if email already exists in the table
         db.query(`SELECT * FROM ${table} WHERE email = ?`, [email], (err, results) => {
-            if (err) return res.status(500).json({ message: 'Database error', error: err });
+            if (err) {
+                console.error('DB Error checking email during signup:', err);
+                return res.status(500).json({ message: 'Database error', error: err });
+            }
             if (results.length > 0) {
                 return res.status(409).json({ message: 'Email already registered.' });
             }
+
             // Insert new user
             db.query(`INSERT INTO ${table} ${insertFields} VALUES (${insertValues.map(() => '?').join(', ')})`, insertValues, (err, result) => {
-                if (err) return res.status(500).json({ message: 'Database error', error: err });
-                return res.status(201).json({ message: 'Signup successful!', userId: result.insertId });
+                if (err) {
+                    console.error('DB Error inserting new user during signup:', err);
+                    // Provide more specific error details if possible (e.g., duplicate entry)
+                    if (err.code === 'ER_DUP_ENTRY') {
+                         return res.status(409).json({ message: 'Duplicate entry error. Phone number or email might already be registered.', error: err.message });
+                    }
+                    return res.status(500).json({ message: 'Database error', error: err });
+                }
+                
+                // Determine the correct userId based on role
+                let userIdToSend;
+                if (role === 'customer') {
+                    userIdToSend = result.insertId; // Assuming customer_id is auto-increment
+                } else if (role === 'restaurant') {
+                    userIdToSend = result.insertId; // Assuming restaurant_id is auto-increment
+                } else if (role === 'delivery_partner') {
+                    userIdToSend = result.insertId; // Assuming partner_id is auto-increment
+                } // No else needed, as invalid role is handled above
+
+                // Ensure userIdToSend is not undefined before sending
+                if (userIdToSend === undefined) {
+                     console.error('Signup successful but failed to get insertId for role:', role);
+                     // Decide how to handle this - perhaps still send a success message without userId
+                     // or return a partial success/warning.
+                     return res.status(201).json({ message: 'Signup successful, but user ID could not be retrieved.' });
+                }
+
+                return res.status(201).json({ message: 'Signup successful!', userId: userIdToSend });
             });
         });
     } catch (err) {
+        console.error('Server Error during signup:', err);
         return res.status(500).json({ message: 'Server error', error: err });
     }
 });
@@ -79,18 +134,25 @@ app.post('/login', (req, res) => {
     }
 
     let table = '';
+    let idColumn = '';
     if (role === 'customer') {
         table = 'customers';
+        idColumn = 'customer_id';
     } else if (role === 'restaurant') {
         table = 'restaurants';
+        idColumn = 'restaurant_id';
     } else if (role === 'delivery_partner') {
         table = 'delivery_partners';
+        idColumn = 'partner_id';
     } else {
         return res.status(400).json({ message: 'Invalid role.' });
     }
 
-    db.query(`SELECT * FROM ${table} WHERE email = ?`, [email], async (err, results) => {
-        if (err) return res.status(500).json({ message: 'Database error', error: err });
+    db.query(`SELECT *, ${idColumn} AS user_id FROM ${table} WHERE email = ?`, [email], async (err, results) => {
+        if (err) {
+            console.error('DB Error during login:', err);
+            return res.status(500).json({ message: 'Database error', error: err });
+        }
         if (results.length === 0) {
             return res.status(401).json({ message: 'Invalid email or password.' });
         }
@@ -99,10 +161,11 @@ app.post('/login', (req, res) => {
         if (!passwordMatch) {
             return res.status(401).json({ message: 'Invalid email or password.' });
         }
-        // You can add session/token logic here if needed
+        
+        // Return the specific user ID based on the role
         res.status(200).json({
             message: 'Login successful!',
-            userId: user.id,
+            userId: user.user_id, // Use the aliased user_id
             name: user.name,
             role
         });
@@ -205,8 +268,100 @@ app.post('/api/restaurant-reply', (req, res) => {
     );
 });
 
+// Get feedback for a restaurant
+app.get('/api/feedback/:restaurantId', (req, res) => {
+    const { restaurantId } = req.params;
+    db.query(
+        'SELECT f.rating, f.comment AS feedbackText, c.name AS userName, f.created_at AS timestamp FROM feedback f JOIN customers c ON f.customer_id = c.customer_id WHERE f.restaurant_id = ? ORDER BY f.created_at DESC',
+        [restaurantId],
+        (err, results) => {
+            if (err) {
+                console.error('DB Error fetching feedback:', err);
+                return res.status(500).json({ message: 'Database error', error: err });
+            }
+            res.json(results);
+        }
+    );
+});
+
 // Register user routes
 app.use('/', userRoutes);
+
+// Get delivery partner details
+app.get('/api/delivery-partners/:partnerId', (req, res) => {
+    const { partnerId } = req.params;
+    db.query(
+        'SELECT partner_id, name, email, phone_number, vehicle_details, current_status FROM delivery_partners WHERE partner_id = ?',
+        [partnerId],
+        (err, results) => {
+            if (err) {
+                console.error('DB Error fetching delivery partner details:', err);
+                return res.status(500).json({ message: 'Database error', error: err });
+            }
+            if (results.length === 0) {
+                return res.status(404).json({ message: 'Delivery partner not found.' });
+            }
+            res.json(results[0]);
+        }
+    );
+});
+
+// Placeholder endpoint for delivery partner earnings
+app.get('/api/delivery-partners/:partnerId/earnings', (req, res) => {
+    const { partnerId } = req.params;
+    // TODO: Implement actual earnings calculation based on delivered orders
+    console.log(`Fetching earnings for delivery partner ${partnerId}`);
+    // Return dummy data for now
+    res.json({ totalEarnings: 1500.75 });
+});
+
+// Placeholder endpoint for delivery partner ratings
+app.get('/api/delivery-partners/:partnerId/ratings', (req, res) => {
+    const { partnerId } = req.params;
+    // TODO: Implement actual rating calculation based on completed orders
+    console.log(`Fetching ratings for delivery partner ${partnerId}`);
+    // Sending placeholder data
+    res.json({ averageRating: 4.5 });
+});
+
+// Get available orders for delivery partners
+app.get('/api/available-orders', (req, res) => {
+    // Query for orders that are 'Pending' and have no delivery_partner_id
+    const query = `
+        SELECT o.order_id, o.customer_id, o.delivery_address, o.total_amount, o.status,
+               c.name AS customer_name,
+               GROUP_CONCAT(oi.food_name ORDER BY oi.id SEPARATOR ', ') AS food_items_list
+        FROM orders o
+        JOIN customers c ON o.customer_id = c.customer_id
+        JOIN order_items oi ON o.order_id = oi.order_id
+        WHERE o.status = 'Pending' AND o.delivery_partner_id IS NULL
+        GROUP BY o.order_id, o.customer_id, o.delivery_address, o.total_amount, o.status, c.name;
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('DB Error fetching available orders:', err);
+            return res.status(500).json({ message: 'Database error', error: err });
+        }
+        
+        // Format the results to include items as an array of objects if needed by the frontend
+        // Currently, the frontend expects 'items' as an array of objects {name: quantity} or similar.
+        // The current query gives a comma-separated string. We can adjust this later
+        // if the frontend requires a more structured item list.
+        const formattedResults = results.map(order => ({
+            order_id: order.order_id,
+            customer_id: order.customer_id,
+            customer_name: order.customer_name,
+            delivery_address: order.delivery_address,
+            total_amount: order.total_amount,
+            status: order.status,
+            // Split the concatenated string into an array of item names (basic for now)
+            items: order.food_items_list ? order.food_items_list.split(', ').map(item => ({ name: item.trim(), quantity: 1 })) : []
+        }));
+
+        res.json(formattedResults);
+    });
+});
 
 // Start the server
 app.listen(PORT, () => {
@@ -283,10 +438,45 @@ app.post('/api/feedback', (req, res) => {
         [restaurantId, customerId, rating, comment],
         (err, result) => {
             if (err) {
-                console.error('DB Error:', err);
+                console.error('DB Error submitting feedback:', err);
+                // Check for foreign key constraint errors
+                if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+                    return res.status(409).json({ message: 'Cannot submit feedback: Invalid restaurant or customer ID.', error: err.message });
+                }
                 return res.status(500).json({ message: 'Database error', error: err });
             }
             res.status(201).json({ message: 'Feedback submitted!' });
+        }
+    );
+});
+
+// Accept an order (Delivery Partner)
+app.post('/api/orders/:orderId/accept', (req, res) => {
+    const { orderId } = req.params;
+    // Assuming delivery partner ID is sent in the request body or available from authenticated user
+    // For now, let's assume it's sent in the body for simplicity or retrieve from req.user if using auth middleware
+    const { deliveryPartnerId } = req.body; // Assuming the frontend sends deliveryPartnerId
+
+    if (!deliveryPartnerId) {
+        // Alternatively, retrieve partnerId from authenticated session/token
+        // const deliveryPartnerId = req.user.partnerId; // Example if using authentication
+        return res.status(400).json({ success: false, message: 'Delivery Partner ID is required.' });
+    }
+
+    // Update the order status and assign delivery partner
+    db.query(
+        'UPDATE orders SET delivery_partner_id = ?, status = ? WHERE order_id = ?',
+        [deliveryPartnerId, 'out_for_delivery', orderId],
+        (err, result) => {
+            if (err) {
+                console.error('DB Error accepting order:', err);
+                return res.status(500).json({ success: false, message: 'Database error', error: err });
+            }
+            if (result.affectedRows === 0) {
+                 // No order found with that ID, or it was already accepted/updated
+                 return res.status(404).json({ success: false, message: 'Order not found or already accepted.' });
+            }
+            res.json({ success: true, message: 'Order accepted successfully!' });
         }
     );
 }); 

@@ -83,6 +83,18 @@ CREATE TABLE IF NOT EXISTS delivery_partners (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Feedback Table
+CREATE TABLE IF NOT EXISTS feedback (
+    feedback_id INT AUTO_INCREMENT PRIMARY KEY,
+    restaurant_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
+);
+
 -- You might want to add other tables later, such as:
 -- Orders, OrderItems, Reviews, etc.
 

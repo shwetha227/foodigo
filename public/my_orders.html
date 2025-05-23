@@ -53,6 +53,157 @@
         </div>
     </div>
     <script src="script.js"></script>
+    <script>
+        // Function to load order history (modified to include chat button)
+        async function loadOrderHistory() {
+            const userId = localStorage.getItem('userId');
+            const orderHistoryDiv = document.getElementById('orderHistory');
+            if (!userId) {
+                orderHistoryDiv.innerHTML = '<p>Please login to view your orders</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/orders/user/${userId}`);
+                const orders = await response.json();
+
+                if (orders.length === 0) {
+                    orderHistoryDiv.innerHTML = '<p>No previous orders found</p>';
+                    return;
+                }
+
+                orderHistoryDiv.innerHTML = orders.map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <h3>Order #${order.order_id}</h3>
+                            <span class="order-status ${order.status.toLowerCase()}">${order.status}</span>
+                        </div>
+                        <div class="order-details">
+                            <p><strong>Restaurant:</strong> ${order.restaurant_name}</p>
+                            <p><strong>Items:</strong> ${order.items}</p>
+                            <p><strong>Total Amount:</strong> ₹${order.total_amount}</p>
+                            <p><strong>Date:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+                        </div>
+                        <div class="order-actions">
+                            <button class="live-chat-order-item-btn" data-order-id="${order.order_id}" data-order-item-id="${order.order_item_id}" data-restaurant-id="${order.restaurant_id}" data-customer-id="${order.customer_id}">Live Chat</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Add event listeners to the chat buttons
+                document.querySelectorAll('.live-chat-order-item-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const orderId = button.dataset.orderId;
+                        const orderItemId = button.dataset.orderItemId;
+                        const restaurantId = button.dataset.restaurantId;
+                        const customerId = button.dataset.customerId;
+                        openChatModal(orderId, orderItemId, restaurantId, customerId);
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error loading order history:', error);
+                orderHistoryDiv.innerHTML = '<p>Error loading order history</p>';
+            }
+        }
+
+        // Initialize order history loading
+        loadOrderHistory();
+
+        // --- Live Chat Modal Functions ---
+        let currentOrderId = null;
+        let currentOrderItemId = null;
+        let currentRestaurantId = null;
+        let currentCustomerId = null;
+
+        function openChatModal(orderId, orderItemId, restaurantId, customerId) {
+            currentOrderId = orderId;
+            currentOrderItemId = orderItemId;
+            currentRestaurantId = restaurantId;
+            currentCustomerId = customerId;
+            document.getElementById('chatMessage').value = ''; // Clear message input
+            document.getElementById('chatModal').style.display = 'block';
+            loadChatHistory();
+        }
+
+        function closeChatModal() {
+            document.getElementById('chatModal').style.display = 'none';
+            document.getElementById('chatHistory').innerHTML = ''; // Clear chat history
+        }
+
+        async function loadChatHistory() {
+            const chatHistoryDiv = document.getElementById('chatHistory');
+            chatHistoryDiv.innerHTML = 'Loading chat...';
+            try {
+                const response = await fetch(`/api/livechat/${currentOrderId}/${currentOrderItemId}`);
+                if (response.ok) {
+                    const messages = await response.json();
+                    chatHistoryDiv.innerHTML = messages.map(msg => `
+                        <div class="chat-msg ${msg.sender}">
+                            <span class="chat-sender">${msg.sender === 'customer' ? 'You' : 'Restaurant'}:</span>
+                            <span class="chat-text">${msg.message}</span>
+                            <span class="chat-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                    `).join('');
+                    // Scroll to the bottom of the chat history
+                    chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+                } else {
+                    chatHistoryDiv.innerHTML = '<p>Error loading chat history.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                chatHistoryDiv.innerHTML = '<p>Error loading chat history.</p>';
+            }
+        }
+
+        async function sendChatMessage() {
+            const messageInput = document.getElementById('chatMessage');
+            const message = messageInput.value.trim();
+
+            if (!message) {
+                alert('Please enter a message.');
+                return;
+            }
+
+            if (!currentOrderId || !currentOrderItemId || !currentRestaurantId || !currentCustomerId) {
+                alert('Chat information is missing. Please reopen the chat.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3001/api/livechat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderId: currentOrderId,
+                        orderItemId: currentOrderItemId,
+                        restaurantId: currentRestaurantId,
+                        customerId: currentCustomerId,
+                        message: message
+                    })
+                });
+
+                if (response.ok) {
+                    messageInput.value = ''; // Clear input after sending
+                    loadChatHistory(); // Refresh chat history
+                } else {
+                    const data = await response.json();
+                    alert(data.message || 'Failed to send message.');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message. Please try again.');
+            }
+        }
+        
+        // Make modal functions globally available
+        window.openChatModal = openChatModal;
+        window.closeChatModal = closeChatModal;
+        window.sendChatMessage = sendChatMessage;
+
+    </script>
 </body>
 
 </html>

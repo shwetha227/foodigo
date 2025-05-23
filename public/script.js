@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded fired.');
     const customerBtn = document.getElementById('customerBtn');
     const restaurantBtn = document.getElementById('restaurantBtn');
     const deliveryPartnerBtn = document.getElementById('deliveryPartnerBtn');
@@ -10,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const loginRoleInput = document.getElementById('loginRole');
     const signupRoleInput = document.getElementById('signupRole');
+
+    // Get references to the new forms
+    const customerSignupForm = document.getElementById('customerSignupForm');
+    const deliveryPartnerSignupForm = document.getElementById('deliveryPartnerSignupForm');
 
     // Handle role selection on index.html
     function handleRoleSelection(role) {
@@ -44,11 +49,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Set the role in the hidden input fields on login.html
+    // Set the role and show/hide forms on login.html
     const selectedRole = localStorage.getItem('selectedRole');
     if (selectedRole) {
-        if (loginRoleInput) loginRoleInput.value = selectedRole;
-        if (signupRoleInput) signupRoleInput.value = selectedRole;
+        // Set the role in the hidden login form input
+        const loginRoleInput = document.getElementById('loginRole');
+        if (loginRoleInput) {
+            loginRoleInput.value = selectedRole;
+             console.log('Login form role set to:', selectedRole);
+        }
+
+        // Hide both signup forms initially
+        if (customerSignupForm) customerSignupForm.style.display = 'none';
+        if (deliveryPartnerSignupForm) deliveryPartnerSignupForm.style.display = 'none';
+
+        // Show the appropriate signup form
+        if (selectedRole === 'customer' && customerSignupForm) {
+            customerSignupForm.style.display = 'block';
+             // Set the hidden role input value for the customer form
+             const signupRoleCustomer = document.getElementById('signupRoleCustomer');
+             if(signupRoleCustomer) signupRoleCustomer.value = selectedRole;
+
+        } else if (selectedRole === 'delivery_partner' && deliveryPartnerSignupForm) {
+            deliveryPartnerSignupForm.style.display = 'block';
+             // Set the hidden role input value for the delivery partner form
+             const signupRoleDP = document.getElementById('signupRoleDP');
+             if(signupRoleDP) signupRoleDP.value = selectedRole;
+
+        } // Add else if for restaurant signup form if needed later
+
+        // Hide customer/delivery partner fields within the login form if they exist
+         const customerFields = document.querySelectorAll('.customer-fields');
+         customerFields.forEach(field => {
+             field.style.display = 'none'; // Always hide these on login.html
+         });
+
+         const deliveryPartnerFields = document.querySelectorAll('.delivery-partner-fields');
+          deliveryPartnerFields.forEach(field => {
+              field.style.display = 'none'; // Always hide these on login.html
+          });
+
         // Potentially change form titles or fields based on role here if needed
         if (loginFormContainer || signupFormContainer) {
             const formTitle = document.querySelector('h2'); // Get the first h2, assuming it's the title
@@ -58,69 +98,131 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handle Login Form Submission (Updated to use backend URL)
+    // Handle Login Form Submission (Updated to use backend URL and correct ID)
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const role = loginRoleInput.value;
+            const role = document.getElementById('loginRole').value; // Get role from login form's hidden input
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             try {
-                const response = await fetch('http://localhost:3001/login', {
+                const response = await fetch('http://localhost:3001/login', { // Use backend URL
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ role, email, password })
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    localStorage.setItem('userId', data.userId);
-                    localStorage.setItem('userName', data.name);
                     localStorage.setItem('role', role);
-                    if (role === 'customer') {
-                        window.location.href = 'customer_dashboard.html';
-                    } else if (role === 'restaurant') {
-                        window.location.href = 'restaurant_dashboard.html';
-                    } else if (role === 'delivery_partner') {
-                        window.location.href = 'delivery_dashboard.html';
+                    
+                    // Store the userId and userName regardless of role
+                    if (data.userId && !isNaN(parseInt(data.userId, 10))) {
+                         localStorage.setItem('userId', data.userId);
+                         localStorage.setItem('userName', data.name);
+                         
+                         // Redirect based on role
+                         if (role === 'customer') {
+                             window.location.href = 'customer_dashboard.html';
+                         } else if (role === 'restaurant') {
+                             window.location.href = 'restaurant_dashboard.html';
+                         } else if (role === 'delivery_partner') {
+                             window.location.href = 'delivery_dashboard.html';
+                         }
+                    } else {
+                        // Log error and alert user if userId is missing/invalid after successful login
+                        console.error('Login successful, but userId missing or invalid:', data);
+                        alert('Login successful, but could not retrieve user information. Please try again or contact support.');
+                        // Optionally clear relevant localStorage items or stay on login page
                     }
                 } else {
                     alert(data.message || 'Login failed.');
                 }
             } catch (err) {
+                console.error('Error during login:', err);
                 alert('An error occurred during login.');
             }
         });
     }
 
-    // Handle Signup Form Submission (Updated to use backend URL)
-    const signupForm = document.getElementById('signupForm');
-    if (signupForm) {
-        signupForm.addEventListener('submit', async (e) => {
+    // Handle Customer Signup Form Submission
+    if (customerSignupForm) {
+        console.log('Customer signup form element found.', customerSignupForm);
+        customerSignupForm.addEventListener('submit', async (e) => {
+            console.log('Customer signup form submitted.');
             e.preventDefault();
-            const role = signupRoleInput.value;
-            const name = document.getElementById('signupName').value;
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
+            const role = document.getElementById('signupRoleCustomer').value; // Get role from hidden input
+            const name = document.getElementById('signupNameCustomer').value;
+            const email = document.getElementById('signupEmailCustomer').value;
+            const password = document.getElementById('signupPasswordCustomer').value;
+            const address = document.getElementById('signupAddressCustomer').value;
+            const phone_number = document.getElementById('signupPhoneCustomer').value;
+
+            const signupData = { role, name, email, password, address, phone_number };
+            
             try {
-                const response = await fetch('http://localhost:3001/signup', {
+                const response = await fetch('http://localhost:3001/signup', { // Use backend URL
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ role, name, email, password })
+                    body: JSON.stringify(signupData)
                 });
                 const data = await response.json();
                 if (response.ok) {
                     alert('Signup successful! Please login.');
+                    // Optionally redirect to login form after successful signup
                     if (showLogin) showLogin.click();
                 } else {
                     alert(data.message || 'Signup failed.');
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Error during customer signup:', err);
                 alert('An error occurred during signup.');
             }
         });
     }
+
+    // Handle Delivery Partner Signup Form Submission
+     if (deliveryPartnerSignupForm) {
+         console.log('Delivery Partner signup form element found.', deliveryPartnerSignupForm);
+         deliveryPartnerSignupForm.addEventListener('submit', async (e) => {
+             console.log('Delivery Partner signup form submitted.');
+             e.preventDefault();
+             const role = document.getElementById('signupRoleDP').value; // Get role from hidden input
+             const name = document.getElementById('signupNameDP').value;
+             const email = document.getElementById('signupEmailDP').value;
+             const password = document.getElementById('signupPasswordDP').value;
+             const phone_number = document.getElementById('signupDPPhone').value;
+             const vehicle_details = document.getElementById('signupVehicleDetails').value;
+             const current_status = document.getElementById('signupCurrentStatus').value;
+             const current_location_lat = document.getElementById('signupCurrentLocationLat').value;
+             const current_location_lng = document.getElementById('signupCurrentLocationLng').value;
+
+             const signupData = {
+                 role, name, email, password,
+                 phone_number, vehicle_details, current_status,
+                 current_location_lat, current_location_lng
+             };
+
+             try {
+                 const response = await fetch('http://localhost:3001/signup', { // Use backend URL
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(signupData)
+                 });
+                 const data = await response.json();
+                 if (response.ok) {
+                     alert('Signup successful! Please login.');
+                      // Optionally redirect to login form after successful signup
+                      if (showLogin) showLogin.click();
+                 } else {
+                     alert(data.message || 'Signup failed.');
+                 }
+             } catch (err) {
+                 console.error('Error during delivery partner signup:', err);
+                 alert('An error occurred during signup.');
+             }
+         });
+     }
 
     // Load restaurants on customer_dashboard.html (Placeholder)
     if (window.location.pathname.endsWith('customer_dashboard.html')) {
@@ -193,12 +295,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const rating = document.getElementById('rating').value;
                 const feedbackText = document.getElementById('feedbackText').value;
-                const userId = localStorage.getItem('userId'); // Assuming you store user ID after login
+                let userId = localStorage.getItem('userId'); // Assuming you store user ID after login
 
+                // --- More robust userId validation ---
                 if (!userId) {
-                    alert('Please login to submit feedback');
+                    alert('Please login to submit feedback (User ID not found).');
+                    console.error('Feedback submission failed: userId not found in localStorage.');
                     return;
                 }
+                
+                // Attempt to parse userId as an integer
+                const customerId = parseInt(userId, 10);
+
+                // Check if parsing resulted in a valid number
+                if (isNaN(customerId)) {
+                     alert('Invalid user ID format. Please try logging in again.');
+                     console.error('Feedback submission failed: Invalid userId format in localStorage:', userId);
+                     localStorage.removeItem('userId'); // Clear potentially bad ID
+                     return;
+                }
+                // --- End robust userId validation ---
 
                 try {
                     const response = await fetch('http://localhost:3001/api/feedback', {
@@ -208,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         body: JSON.stringify({
                             restaurantId,
-                            customerId: userId,
+                            customerId: customerId, // Use the parsed integer ID
                             rating,
                             comment: feedbackText,
                             timestamp: new Date().toISOString()
@@ -234,8 +350,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Function to load restaurant feedback
         async function loadRestaurantFeedback() {
             const restaurantFeedback = document.getElementById('restaurantFeedback');
+            const restaurantId = localStorage.getItem('selectedRestaurantId'); // Get restaurant ID
+            if (!restaurantId) {
+                console.error('Restaurant ID not found in localStorage for loading feedback.');
+                restaurantFeedback.innerHTML = '<p>Could not load feedback: Restaurant not identified.</p>';
+                return;
+            }
+
             try {
-                const response = await fetch(`/api/feedback/${restaurantId}`);
+                const response = await fetch(`http://localhost:3001/api/feedback/${restaurantId}`); // Corrected endpoint call
                 if (response.ok) {
                     const feedbacks = await response.json();
                     restaurantFeedback.innerHTML = feedbacks.map(feedback => `
@@ -350,7 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Puri Sagu', image: 'https://tse3.mm.bing.net/th?id=OIP.LH4eXByqmNMwljmFMZyR_wHaJ4&pid=Api&P=0&h=180', price: 60, type: 'veg' },
                 { name: 'Filter Coffee', image: 'https://tse1.mm.bing.net/th?id=OIP.iccf3TkxZckxuX6Y3f4cJwHaE8&pid=Api&P=0&h=180', price: 25, type: 'veg' }
             ],
-            // ... Add food items for other restaurants (3-10) ...
             5: [
                 { name: 'Masala Dosa', image: 'https://tse2.mm.bing.net/th?id=OIP.muoKUxPS67DJ_k3sm-wlygHaFN&pid=Api&P=0&h=180', price: 70, type: 'veg' },
                 { name: 'Chicken Biryani', image: 'https://www.africanbites.com/wp-content/uploads/2018/04/IMG_0165.jpg', price: 150, type: 'nonveg' },
@@ -364,6 +486,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 { name: 'Filter Coffee', image: 'https://tse1.mm.bing.net/th?id=OIP.iccf3TkxZckxuX6Y3f4cJwHaE8&pid=Api&P=0&h=180', price: 30, type: 'veg' }
             ],
             6: [
+                { name: 'Crispy Masala Dosa', image: 'https://tse3.mm.bing.net/th?id=OIP.TkHv973tY0EXhYXnY9RMlQHaEK&pid=Api&P=0&h=180', price: 60, type: 'veg' },
+                { name: 'Plain Dosa', image: 'https://www.indianmirchi.co.uk/wp-content/uploads/2023/09/Plain-Dosa.jpg', price: 50, type: 'veg' },
+                { name: 'Idli Sambar', image: 'https://www.tomatoblues.com/wp-content/uploads/2018/07/SAMAI-IDLI-1-scaled.jpg', price: 40, type: 'veg' },
+                { name: 'Chicken 65', image: 'https://www.indianhealthyrecipes.com/wp-content/uploads/2022/03/chicken-65-restaurant-style.jpg', price: 140, type: 'nonveg' },
+                { name: 'Vada', image: 'https://tse4.mm.bing.net/th?id=OIP.U-byr6AmPCFWq9q6Ay10VwHaE7&pid=Api&P=0&h=180', price: 35, type: 'veg' },
+                { name: 'Rava Dosa', image: 'https://tse2.mm.bing.net/th?id=OIP.3RLlxQdLdSzqNS3Ak5WrTQHaJK&pid=Api&P=0&h=180', price: 55, type: 'veg' },
+                { name: 'Fish Curry', image: 'https://tse4.mm.bing.net/th?id=OIP.LHbsvSjI-nPalcjKqJL0xAHaJQ&pid=Api&P=0&h=180', price: 170, type: 'nonveg' },
+                { name: 'Upma', image: 'https://d36v5spmfzyapc.cloudfront.net/wp-content/uploads/2021/02/Veg-Upma-2.jpg', price: 35, type: 'veg' },
+                { name: 'Puri Sagu', image: 'https://tse3.mm.bing.net/th?id=OIP.LH4eXByqmNMwljmFMZyR_wHaJ4&pid=Api&P=0&h=180', price: 60, type: 'veg' },
+                { name: 'Filter Coffee', image: 'https://tse1.mm.bing.net/th?id=OIP.iccf3TkxZckxuX6Y3f4cJwHaE8&pid=Api&P=0&h=180', price: 25, type: 'veg' }
+            ],
+            7: [
+                { name: 'Masala Dosa', image: 'https://tse2.mm.bing.net/th?id=OIP.muoKUxPS67DJ_k3sm-wlygHaFN&pid=Api&P=0&h=180', price: 70, type: 'veg' },
+                { name: 'Chicken Biryani', image: 'https://www.africanbites.com/wp-content/uploads/2018/04/IMG_0165.jpg', price: 150, type: 'nonveg' },
+                { name: 'Rava Idli', image: 'https://tse4.mm.bing.net/th?id=OIP.SJ4r8E-xa-qJqquclgM4RgHaGb&pid=Api&P=0&h=180', price: 50, type: 'veg' },
+                { name: 'Egg Curry', image: 'https://tse4.mm.bing.net/th?id=OIP.B0CZfLqGWwe6xds5gghnHAHaLG&pid=Api&P=0&h=180', price: 120, type: 'nonveg' },
+                { name: 'Vada', image: 'https://tse4.mm.bing.net/th?id=OIP.U-byr6AmPCFWq9q6Ay10VwHaE7&pid=Api&P=0&h=180', price: 40, type: 'veg' },
+                { name: 'Fish Fry', image: 'https://tse2.mm.bing.net/th?id=OIP.LDx01nvywhRgm1h1SkLINQAAAA&pid=Api&P=0&h=180', price: 180, type: 'nonveg' },
+                { name: 'Paneer Butter Masala', image: 'https://tse2.mm.bing.net/th?id=OIP.3fROpInSzgY--B1msdJITQHaHa&pid=Api&P=0&h=180', price: 130, type: 'veg' },
+                { name: 'Mutton Curry', image: 'https://tse4.mm.bing.net/th?id=OIP.occg_F34lY-U35Ywbgs-uQHaE7&pid=Api&P=0&h=180', price: 200, type: 'nonveg' },
+                { name: 'Kesari Bath', image: 'https://tse1.mm.bing.net/th?id=OIP.QtbQ-7rtAoZE3_McQQPLngHaHE&pid=Api&P=0&h=180', price: 45, type: 'veg' },
+                { name: 'Filter Coffee', image: 'https://tse1.mm.bing.net/th?id=OIP.iccf3TkxZckxuX6Y3f4cJwHaE8&pid=Api&P=0&h=180', price: 30, type: 'veg' }
+            ],
+            8: [
+                { name: 'Crispy Masala Dosa', image: 'https://tse3.mm.bing.net/th?id=OIP.TkHv973tY0EXhYXnY9RMlQHaEK&pid=Api&P=0&h=180', price: 60, type: 'veg' },
+                { name: 'Plain Dosa', image: 'https://www.indianmirchi.co.uk/wp-content/uploads/2023/09/Plain-Dosa.jpg', price: 50, type: 'veg' },
+                { name: 'Idli Sambar', image: 'https://www.tomatoblues.com/wp-content/uploads/2018/07/SAMAI-IDLI-1-scaled.jpg', price: 40, type: 'veg' },
+                { name: 'Chicken 65', image: 'https://www.indianhealthyrecipes.com/wp-content/uploads/2022/03/chicken-65-restaurant-style.jpg', price: 140, type: 'nonveg' },
+                { name: 'Vada', image: 'https://tse4.mm.bing.net/th?id=OIP.U-byr6AmPCFWq9q6Ay10VwHaE7&pid=Api&P=0&h=180', price: 35, type: 'veg' },
+                { name: 'Rava Dosa', image: 'https://tse2.mm.bing.net/th?id=OIP.3RLlxQdLdSzqNS3Ak5WrTQHaJK&pid=Api&P=0&h=180', price: 55, type: 'veg' },
+                { name: 'Fish Curry', image: 'https://tse4.mm.bing.net/th?id=OIP.LHbsvSjI-nPalcjKqJL0xAHaJQ&pid=Api&P=0&h=180', price: 170, type: 'nonveg' },
+                { name: 'Upma', image: 'https://d36v5spmfzyapc.cloudfront.net/wp-content/uploads/2021/02/Veg-Upma-2.jpg', price: 35, type: 'veg' },
+                { name: 'Puri Sagu', image: 'https://tse3.mm.bing.net/th?id=OIP.LH4eXByqmNMwljmFMZyR_wHaJ4&pid=Api&P=0&h=180', price: 60, type: 'veg' },
+                { name: 'Filter Coffee', image: 'https://tse1.mm.bing.net/th?id=OIP.iccf3TkxZckxuX6Y3f4cJwHaE8&pid=Api&P=0&h=180', price: 25, type: 'veg' }
+            ], 9: [
+                { name: 'Masala Dosa', image: 'https://tse2.mm.bing.net/th?id=OIP.muoKUxPS67DJ_k3sm-wlygHaFN&pid=Api&P=0&h=180', price: 70, type: 'veg' },
+                { name: 'Chicken Biryani', image: 'https://www.africanbites.com/wp-content/uploads/2018/04/IMG_0165.jpg', price: 150, type: 'nonveg' },
+                { name: 'Rava Idli', image: 'https://tse4.mm.bing.net/th?id=OIP.SJ4r8E-xa-qJqquclgM4RgHaGb&pid=Api&P=0&h=180', price: 50, type: 'veg' },
+                { name: 'Egg Curry', image: 'https://tse4.mm.bing.net/th?id=OIP.B0CZfLqGWwe6xds5gghnHAHaLG&pid=Api&P=0&h=180', price: 120, type: 'nonveg' },
+                { name: 'Vada', image: 'https://tse4.mm.bing.net/th?id=OIP.U-byr6AmPCFWq9q6Ay10VwHaE7&pid=Api&P=0&h=180', price: 40, type: 'veg' },
+                { name: 'Fish Fry', image: 'https://tse2.mm.bing.net/th?id=OIP.LDx01nvywhRgm1h1SkLINQAAAA&pid=Api&P=0&h=180', price: 180, type: 'nonveg' },
+                { name: 'Paneer Butter Masala', image: 'https://tse2.mm.bing.net/th?id=OIP.3fROpInSzgY--B1msdJITQHaHa&pid=Api&P=0&h=180', price: 130, type: 'veg' },
+                { name: 'Mutton Curry', image: 'https://tse4.mm.bing.net/th?id=OIP.occg_F34lY-U35Ywbgs-uQHaE7&pid=Api&P=0&h=180', price: 200, type: 'nonveg' },
+                { name: 'Kesari Bath', image: 'https://tse1.mm.bing.net/th?id=OIP.QtbQ-7rtAoZE3_McQQPLngHaHE&pid=Api&P=0&h=180', price: 45, type: 'veg' },
+                { name: 'Filter Coffee', image: 'https://tse1.mm.bing.net/th?id=OIP.iccf3TkxZckxuX6Y3f4cJwHaE8&pid=Api&P=0&h=180', price: 30, type: 'veg' }
+            ],
+            10: [
                 { name: 'Crispy Masala Dosa', image: 'https://tse3.mm.bing.net/th?id=OIP.TkHv973tY0EXhYXnY9RMlQHaEK&pid=Api&P=0&h=180', price: 60, type: 'veg' },
                 { name: 'Plain Dosa', image: 'https://www.indianmirchi.co.uk/wp-content/uploads/2023/09/Plain-Dosa.jpg', price: 50, type: 'veg' },
                 { name: 'Idli Sambar', image: 'https://www.tomatoblues.com/wp-content/uploads/2018/07/SAMAI-IDLI-1-scaled.jpg', price: 40, type: 'veg' },
@@ -451,7 +620,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const placeOrderBtn = document.getElementById('placeOrderBtn');
         const orderHistory = document.getElementById('orderHistory');
 
-        // Update cart display
+        // Update cart dis
+            play
         function updateCart() {
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
             cartItems.innerHTML = '';

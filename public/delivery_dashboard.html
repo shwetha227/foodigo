@@ -4,33 +4,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Dashboard - Foodigo</title>
+    <title>Delivery Partner Dashboard - Foodigo</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <div class="delivery-dashboard">
-        <h1>Delivery Dashboard</h1>
-        <div id="pending-orders">
-            <!-- Orders will be populated here dynamically -->
+    <div class="top-bar">
+        <button id="logoutBtn">Logout</button>
+    </div>
+    <div class="container delivery-dashboard">
+        <h1>Delivery Partner Dashboard</h1>
+
+        <div class="section">
+            <h2>My Information</h2>
+            <div id="partnerInfo">
+                <p>Name: <span id="partnerName">Loading...</span></p>
+                <p>Email: <span id="partnerEmail">Loading...</span></p>
+                <p>Phone: <span id="partnerPhone">Loading...</span></p>
+                <p>Vehicle: <span id="partnerVehicle">Loading...</span></p>
+                <p>Status: <span id="partnerStatus">Loading...</span></p>
+            </div>
         </div>
+
+        <div class="section">
+            <h2>Earnings & Ratings</h2>
+            <div id="earningsAndRatings">
+                <p>Total Earnings: <span id="totalEarnings">Loading...</span></p>
+                <p>Average Rating: <span id="averageRating">Loading...</span></p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Available Orders</h2>
+            <div id="availableOrders" class="order-history">
+                <!-- Available orders will be loaded here -->
+                <p>Loading available orders...</p>
+            </div>
+        </div>
+
     </div>
 
-    <template id="order-template">
-        <div class="order-card">
-            <h3>Order #<span class="order-id"></span></h3>
-            <div class="order-details">
-                <p><strong>Customer:</strong> <span class="customer-name"></span></p>
-                <p><strong>Address:</strong> <span class="delivery-address"></span></p>
-                <p><strong>Items:</strong></p>
-                <ul class="order-items"></ul>
-                <p><strong>Total:</strong> $<span class="order-total"></span></p>
-            </div>
-            <button class="accept-order-btn" data-order-id="">Accept Order</button>
-        </div>
-    </template>
-
+    <script src="script.js"></script>
     <script src="delivery-dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userId = localStorage.getItem('userId');
+            console.log('Delivery Dashboard - userId from localStorage:', userId);
+        });
+    </script>
 </body>
 
 </html>

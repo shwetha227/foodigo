@@ -66,7 +66,8 @@ h1 {
 
 .form-group input[type="text"],
 .form-group input[type="email"],
-.form-group input[type="password"] {
+.form-group input[type="password"],
+.form-group input[type="tel"] {
     width: calc(100% - 22px);
     /* Account for padding and border */
     padding: 10px;
